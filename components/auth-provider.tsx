@@ -29,11 +29,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const getUser = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-      setUser(session?.user || null)
-      setIsLoading(false)
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession()
+        setUser(session?.user || null)
+      } catch (error) {
+        console.error("Erro ao obter sessão:", error)
+      } finally {
+        setIsLoading(false)
+      }
     }
 
     getUser()
@@ -51,8 +56,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [router, supabase.auth])
 
   const signOut = async () => {
-    await supabase.auth.signOut()
-    router.push("/")
+    try {
+      await supabase.auth.signOut()
+      router.push("/")
+    } catch (error) {
+      console.error("Erro ao fazer logout:", error)
+    }
   }
 
   return <AuthContext.Provider value={{ user, isLoading, signOut }}>{children}</AuthContext.Provider>

@@ -19,6 +19,15 @@ export const createBrowserClient = () => {
     throw new Error("Supabase URL and Anon Key must be defined in environment variables")
   }
 
-  supabaseClient = createClient<Database>(supabaseUrl, supabaseAnonKey)
+  // Configurações adicionais para ambiente local
+  const options = {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true,
+    },
+  }
+
+  supabaseClient = createClient<Database>(supabaseUrl, supabaseAnonKey, options)
   return supabaseClient
 }

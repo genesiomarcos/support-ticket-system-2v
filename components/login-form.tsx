@@ -13,6 +13,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/components/ui/use-toast"
 
+// Define schemas outside of component
 const loginSchema = z.object({
   email: z.string().email({ message: "Email inválido" }),
   password: z.string().min(6, { message: "Senha deve ter pelo menos 6 caracteres" }),
@@ -24,6 +25,9 @@ const registerSchema = z.object({
   password: z.string().min(6, { message: "Senha deve ter pelo menos 6 caracteres" }),
 })
 
+type LoginFormValues = z.infer<typeof loginSchema>
+type RegisterFormValues = z.infer<typeof registerSchema>
+
 export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false)
   const [activeTab, setActiveTab] = useState("login")
@@ -31,29 +35,34 @@ export function LoginForm() {
   const supabase = createBrowserClient()
   const { toast } = useToast()
 
-  const loginForm = useForm<z.infer<typeof loginSchema>>({
+  // Login form
+  const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
       email: "",
       password: "",
     },
+    mode: "onSubmit",
   })
 
-  const registerForm = useForm<z.infer<typeof registerSchema>>({
+  // Register form
+  const registerForm = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
       name: "",
       email: "",
       password: "",
     },
+    mode: "onSubmit",
   })
 
-  async function onLoginSubmit(values: z.infer<typeof loginSchema>) {
+  // Login handler
+  const onLoginSubmit = async (data: LoginFormValues) => {
     setIsLoading(true)
     try {
       const { error } = await supabase.auth.signInWithPassword({
-        email: values.email,
-        password: values.password,
+        email: data.email,
+        password: data.password,
       })
 
       if (error) {
@@ -73,15 +82,16 @@ export function LoginForm() {
     }
   }
 
-  async function onRegisterSubmit(values: z.infer<typeof registerSchema>) {
+  // Register handler
+  const onRegisterSubmit = async (data: RegisterFormValues) => {
     setIsLoading(true)
     try {
-      const { error: signUpError } = await supabase.auth.signUp({
-        email: values.email,
-        password: values.password,
+      const { error: signUpError, data: signUpData } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
         options: {
           data: {
-            name: values.name,
+            name: data.name,
           },
         },
       })
@@ -91,15 +101,11 @@ export function LoginForm() {
       }
 
       // Create user profile
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (user) {
+      if (signUpData.user) {
         const { error: profileError } = await supabase.from("profiles").insert({
-          id: user.id,
-          name: values.name,
-          email: values.email,
+          id: signUpData.user.id,
+          name: data.name,
+          email: data.email,
           is_admin: false,
         })
 

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
 import { createServerClient } from "@/lib/supabase-server"
-import { LoginForm } from "@/components/login-form"
+import { SimpleLoginForm } from "@/components/simple-login-form"
 
 export default async function Home() {
   const supabase = createServerClient()
@@ -15,7 +15,7 @@ export default async function Home() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <LoginForm />
+        <SimpleLoginForm />
       </div>
     </main>
   )

@@ -1,0 +1,24 @@
+{
+  "project_id": "support-ticket-system",
+  "db": {
+    "port": 54322,
+    "user": "postgres",
+    "password": "postgres",
+    "db_name": "postgres"
+  },
+  "api": {
+    "port": 54321,
+    "schemas": ["public", "auth", "storage"],
+    "extra_search_path": ["public", "extensions"],
+    "max_rows": 1000
+  },
+  "studio": {
+    "port": 54323
+  },
+  "auth": {
+    "site_url": "http://localhost:3000",
+    "additional_redirect_urls": ["https://localhost:3000"],
+    "jwt_expiry": 3600,
+    "enable_signup": true
+  }
+}

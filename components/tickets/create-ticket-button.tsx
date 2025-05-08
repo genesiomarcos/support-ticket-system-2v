@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { createBrowserClient } from "@/lib/supabase-browser"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -48,14 +48,34 @@ export function CreateTicketButton() {
     defaultValues: {
       subject: "",
       description: "",
+      category_id: "",
     },
   })
 
   const loadCategories = async () => {
-    const { data } = await supabase.from("categories").select("id, name").order("name")
+    try {
+      const { data, error } = await supabase.from("categories").select("id, name").order("name")
 
-    setCategories(data || [])
+      if (error) {
+        throw error
+      }
+
+      setCategories(data || [])
+    } catch (error: any) {
+      console.error("Erro ao carregar categorias:", error.message)
+      toast({
+        variant: "destructive",
+        title: "Erro ao carregar categorias",
+        description: error.message || "Ocorreu um erro ao carregar as categorias",
+      })
+    }
   }
+
+  useEffect(() => {
+    if (open) {
+      loadCategories()
+    }
+  }, [open])
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true)
@@ -116,9 +136,17 @@ export function CreateTicketButton() {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(newOpen) => {
+        setOpen(newOpen)
+        if (!newOpen) {
+          form.reset()
+        }
+      }}
+    >
       <DialogTrigger asChild>
-        <Button onClick={loadCategories}>
+        <Button onClick={() => setOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
           Novo Ticket
         </Button>
@@ -162,7 +190,7 @@ export function CreateTicketButton() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Categoria</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione uma categoria" />

@@ -2,26 +2,28 @@
 
 Sistema de gerenciamento de tickets de suporte desenvolvido com Next.js e Supabase.
 
-## Configuração do Ambiente
+## Configuração do Ambiente Local
+
+### Pré-requisitos
+
+- Node.js 16+ instalado
+- PostgreSQL instalado localmente (ou Docker)
+- Supabase CLI instalado (`npm install -g supabase`)
+
+### Passos para Configuração
 
 1. Clone o repositório
+   \`\`\`bash
+   git clone https://github.com/seu-usuario/support-ticket-system.git
+   cd support-ticket-system
+   \`\`\`
+
 2. Copie o arquivo `.env.example` para `.env.local`:
    \`\`\`bash
    cp .env.example .env.local
    \`\`\`
-3. Crie um projeto no [Supabase](https://supabase.com)
-4. Atualize as variáveis de ambiente no arquivo `.env.local` com as credenciais do seu projeto Supabase:
-   - `NEXT_PUBLIC_SUPABASE_URL`: URL do seu projeto Supabase
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Chave anônima do seu projeto Supabase
-   - `SUPABASE_SERVICE_ROLE_KEY`: Chave de serviço do seu projeto Supabase
-   - `SUPABASE_JWT_SECRET`: JWT Secret do seu projeto Supabase
 
-5. Execute as migrações do banco de dados:
-   \`\`\`bash
-   npx supabase db push
-   \`\`\`
-
-6. Instale as dependências:
+3. Instale as dependências:
    \`\`\`bash
    npm install
    # ou
@@ -30,7 +32,31 @@ Sistema de gerenciamento de tickets de suporte desenvolvido com Next.js e Supaba
    pnpm install
    \`\`\`
 
-7. Execute o servidor de desenvolvimento:
+4. Configure o banco de dados local:
+   \`\`\`bash
+   # Dê permissão de execução ao script
+   chmod +x scripts/setup-local-db.sh
+   
+   # Execute o script
+   ./scripts/setup-local-db.sh
+   \`\`\`
+
+   Ou manualmente:
+   \`\`\`bash
+   # Inicialize o projeto Supabase
+   supabase init
+   
+   # Inicie os serviços locais
+   supabase start
+   
+   # Aplique as migrações
+   supabase db push
+   
+   # Execute o seed
+   supabase db execute --file supabase/seed.sql
+   \`\`\`
+
+5. Execute o servidor de desenvolvimento:
    \`\`\`bash
    npm run dev
    # ou
@@ -39,16 +65,27 @@ Sistema de gerenciamento de tickets de suporte desenvolvido com Next.js e Supaba
    pnpm dev
    \`\`\`
 
-8. Abra [http://localhost:3000](http://localhost:3000) no seu navegador para ver o resultado.
+6. Acesse o aplicativo em [http://localhost:3000](http://localhost:3000)
 
-## Funcionalidades
+### Credenciais de Administrador Padrão
 
-- Autenticação de usuários
-- Gerenciamento de tickets
-- Categorias, prioridades e status personalizáveis
-- Comentários e operações em tickets
-- Painel administrativo
-- Estatísticas e relatórios
+Após executar o seed, você pode fazer login com as seguintes credenciais:
+
+- **Email**: admin@example.com
+- **Senha**: admin123
+
+## Comandos Úteis
+
+- **Iniciar Supabase**: `supabase start`
+- **Parar Supabase**: `supabase stop`
+- **Status do Supabase**: `supabase status`
+- **Resetar Banco de Dados**: `supabase db reset`
+- **Aplicar Migrações**: `supabase db push`
+- **Executar Seed**: `supabase db execute --file supabase/seed.sql`
+
+## Acessando o Supabase Studio Local
+
+O Supabase Studio local está disponível em [http://localhost:54323](http://localhost:54323)
 
 ## Estrutura do Projeto
 
@@ -58,11 +95,14 @@ Sistema de gerenciamento de tickets de suporte desenvolvido com Next.js e Supaba
 - `/types`: Definições de tipos TypeScript
 - `/supabase`: Migrações e configurações do Supabase
 
-## Usuários e Permissões
+## Funcionalidades
 
-O sistema possui dois tipos de usuários:
+- Autenticação de usuários
+- Gerenciamento de tickets
+- Categorias, prioridades e status personalizáveis
+- Comentários e operações em tickets
+- Painel administrativo
+- Estatísticas e relatórios
+\`\`\`
 
-1. **Usuários comuns**: Podem criar e gerenciar seus próprios tickets
-2. **Administradores**: Podem gerenciar todos os tickets, categorias, prioridades, status e usuários
-
-Para criar um administrador, registre um usuário normal e depois atualize o campo `is_admin` para `true` no banco de dados.
+Vamos adicionar um script para verificar as variáveis de ambiente:
