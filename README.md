@@ -1,30 +1,68 @@
-# Support ticket system
+# Sistema de Suporte - Gerenciamento de Tickets
 
-*Automatically synced with your [v0.dev](https://v0.dev) deployments*
+Sistema de gerenciamento de tickets de suporte desenvolvido com Next.js e Supabase.
 
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/genesiomarcos-projects/v0-support-ticket-system)
-[![Built with v0](https://img.shields.io/badge/Built%20with-v0.dev-black?style=for-the-badge)](https://v0.dev/chat/projects/VuYvGweoeZW)
+## Configuração do Ambiente
 
-## Overview
+1. Clone o repositório
+2. Copie o arquivo `.env.example` para `.env.local`:
+   \`\`\`bash
+   cp .env.example .env.local
+   \`\`\`
+3. Crie um projeto no [Supabase](https://supabase.com)
+4. Atualize as variáveis de ambiente no arquivo `.env.local` com as credenciais do seu projeto Supabase:
+   - `NEXT_PUBLIC_SUPABASE_URL`: URL do seu projeto Supabase
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Chave anônima do seu projeto Supabase
+   - `SUPABASE_SERVICE_ROLE_KEY`: Chave de serviço do seu projeto Supabase
+   - `SUPABASE_JWT_SECRET`: JWT Secret do seu projeto Supabase
 
-This repository will stay in sync with your deployed chats on [v0.dev](https://v0.dev).
-Any changes you make to your deployed app will be automatically pushed to this repository from [v0.dev](https://v0.dev).
+5. Execute as migrações do banco de dados:
+   \`\`\`bash
+   npx supabase db push
+   \`\`\`
 
-## Deployment
+6. Instale as dependências:
+   \`\`\`bash
+   npm install
+   # ou
+   yarn
+   # ou
+   pnpm install
+   \`\`\`
 
-Your project is live at:
+7. Execute o servidor de desenvolvimento:
+   \`\`\`bash
+   npm run dev
+   # ou
+   yarn dev
+   # ou
+   pnpm dev
+   \`\`\`
 
-**[https://vercel.com/genesiomarcos-projects/v0-support-ticket-system](https://vercel.com/genesiomarcos-projects/v0-support-ticket-system)**
+8. Abra [http://localhost:3000](http://localhost:3000) no seu navegador para ver o resultado.
 
-## Build your app
+## Funcionalidades
 
-Continue building your app on:
+- Autenticação de usuários
+- Gerenciamento de tickets
+- Categorias, prioridades e status personalizáveis
+- Comentários e operações em tickets
+- Painel administrativo
+- Estatísticas e relatórios
 
-**[https://v0.dev/chat/projects/VuYvGweoeZW](https://v0.dev/chat/projects/VuYvGweoeZW)**
+## Estrutura do Projeto
 
-## How It Works
+- `/app`: Rotas e páginas da aplicação (Next.js App Router)
+- `/components`: Componentes React reutilizáveis
+- `/lib`: Utilitários e serviços
+- `/types`: Definições de tipos TypeScript
+- `/supabase`: Migrações e configurações do Supabase
 
-1. Create and modify your project using [v0.dev](https://v0.dev)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
+## Usuários e Permissões
+
+O sistema possui dois tipos de usuários:
+
+1. **Usuários comuns**: Podem criar e gerenciar seus próprios tickets
+2. **Administradores**: Podem gerenciar todos os tickets, categorias, prioridades, status e usuários
+
+Para criar um administrador, registre um usuário normal e depois atualize o campo `is_admin` para `true` no banco de dados.

@@ -10,11 +10,12 @@ export const createBrowserClient = () => {
     return supabaseClient
   }
 
-  // These environment variables are automatically available after adding the Supabase integration
+  // Certifique-se de que as variáveis de ambiente estão definidas
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   if (!supabaseUrl || !supabaseAnonKey) {
+    console.error("Supabase URL and Anon Key must be defined in environment variables")
     throw new Error("Supabase URL and Anon Key must be defined in environment variables")
   }
 
