@@ -1,14 +1,14 @@
-import { createServerClient } from "./supabase-server"
+import prisma from "./prisma"
 
 export async function getUserProfile(userId: string) {
-  const supabase = createServerClient()
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    })
 
-  const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).single()
-
-  if (error) {
+    return user
+  } catch (error) {
     console.error("Error fetching user profile:", error)
     return null
   }
-
-  return data
 }

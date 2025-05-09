@@ -2,7 +2,7 @@ import type React from "react"
 import { Inter } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
-import { AuthProvider } from "@/components/auth-provider"
+import { SessionProvider } from "@/components/session-provider"
 import { SidebarProvider } from "@/components/sidebar-provider"
 import "./globals.css"
 
@@ -23,12 +23,12 @@ export default function RootLayout({
     <html lang="pt-BR" suppressHydrationWarning>
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-          <AuthProvider>
+          <SessionProvider>
             <SidebarProvider>
               {children}
               <Toaster />
             </SidebarProvider>
-          </AuthProvider>
+          </SessionProvider>
         </ThemeProvider>
       </body>
     </html>

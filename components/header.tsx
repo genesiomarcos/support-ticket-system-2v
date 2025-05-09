@@ -1,6 +1,6 @@
 "use client"
 
-import { useAuth } from "./auth-provider"
+import { signOut, useSession } from "next-auth/react"
 import { useSidebar } from "./sidebar-provider"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -13,28 +13,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Menu, User, LogOut } from "lucide-react"
-import { useEffect, useState } from "react"
-import { createBrowserClient } from "@/lib/supabase-browser"
 
 export function Header() {
-  const { user, signOut } = useAuth()
+  const { data: session } = useSession()
   const { toggle } = useSidebar()
-  const [userName, setUserName] = useState("")
-  const supabase = createBrowserClient()
 
-  useEffect(() => {
-    const getUserProfile = async () => {
-      if (user) {
-        const { data } = await supabase.from("profiles").select("name").eq("id", user.id).single()
-
-        if (data) {
-          setUserName(data.name)
-        }
-      }
-    }
-
-    getUserProfile()
-  }, [user, supabase])
+  const userName = session?.user?.name || ""
 
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
@@ -59,7 +43,7 @@ export function Header() {
               <User className="mr-2 h-4 w-4" />
               <span>Perfil</span>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => signOut()}>
+            <DropdownMenuItem onClick={() => signOut({ callbackUrl: "/" })}>
               <LogOut className="mr-2 h-4 w-4" />
               <span>Sair</span>
             </DropdownMenuItem>

@@ -4,8 +4,7 @@ import type React from "react"
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useEffect, useState } from "react"
-import { createBrowserClient } from "@/lib/supabase-browser"
+import { useSession } from "next-auth/react"
 import { cn } from "@/lib/utils"
 import { useSidebar } from "./sidebar-provider"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -63,24 +62,8 @@ const navItems: NavItem[] = [
 export function Sidebar() {
   const pathname = usePathname()
   const { isOpen, close } = useSidebar()
-  const [isAdmin, setIsAdmin] = useState(false)
-  const supabase = createBrowserClient()
-
-  useEffect(() => {
-    const checkUserRole = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (user) {
-        const { data } = await supabase.from("profiles").select("is_admin").eq("id", user.id).single()
-
-        setIsAdmin(data?.is_admin || false)
-      }
-    }
-
-    checkUserRole()
-  }, [supabase])
+  const { data: session } = useSession()
+  const isAdmin = session?.user?.isAdmin || false
 
   return (
     <>

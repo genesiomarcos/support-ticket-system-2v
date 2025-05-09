@@ -1,24 +1,20 @@
-import { createServerClient } from "./supabase-server"
+import prisma from "./prisma"
 
 export async function getTicketById(ticketId: string) {
-  const supabase = createServerClient()
+  try {
+    const ticket = await prisma.ticket.findUnique({
+      where: { id: ticketId },
+      include: {
+        category: true,
+        status: true,
+        priority: true,
+        createdBy: true,
+      },
+    })
 
-  const { data, error } = await supabase
-    .from("tickets")
-    .select(`
-      *,
-      category:categories(*),
-      status:statuses(*),
-      priority:priorities(*),
-      profile:profiles(*)
-    `)
-    .eq("id", ticketId)
-    .single()
-
-  if (error) {
+    return ticket
+  } catch (error) {
     console.error("Error fetching ticket:", error)
     return null
   }
-
-  return data
 }
