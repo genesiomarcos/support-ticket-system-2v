@@ -111,7 +111,7 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 > **Importante**: Substitua `sua-chave-secreta-com-pelo-menos-32-caracteres` por uma string aleatória segura. Você pode gerar uma usando:
 > \`\`\`bash
 > openssl rand -base64 32
-> ```
+> \`\`\`
 
 ### 2. Configure o banco de dados
 
@@ -124,6 +124,33 @@ npm run db:push
 # Popula o banco de dados com dados iniciais
 npm run db:seed
 \`\`\`
+
+## 🔧 Ambientes
+
+O projeto suporta diferentes ambientes de execução:
+
+### Ambiente de Desenvolvimento
+
+O ambiente de desenvolvimento usa o arquivo `.env` e é configurado para desenvolvimento local.
+
+### Ambiente de Teste
+
+O ambiente de teste usa o arquivo `.env.testing` e é configurado especificamente para execução de testes.
+
+Para executar os testes no ambiente de teste:
+
+\`\`\`bash
+# Configurar o banco de dados de teste
+npm run prisma:test:setup
+
+# Executar testes unitários no ambiente de teste
+npm run test:ci
+
+# Executar testes E2E no ambiente de teste
+npm run test:e2e:ci
+\`\`\`
+
+Os testes usam um banco de dados SQLite separado (`test.db`) para evitar interferir com o banco de dados de desenvolvimento.
 
 ## 🗂️ Estrutura do Projeto
 
@@ -255,6 +282,3 @@ Contribuições são bem-vindas! Por favor, sinta-se à vontade para enviar um P
 ## 📄 Licença
 
 Este projeto está licenciado sob a licença MIT - veja o arquivo LICENSE para detalhes.
-\`\`\`
-
-Agora, vamos configurar os testes unitários. Primeiro, vamos adicionar as dependências necessárias ao package.json:

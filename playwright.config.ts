@@ -1,3 +1,6 @@
+// Configuração para usar o arquivo .env.testing
+process.env.NODE_ENV = "test"
+
 import { defineConfig, devices } from "@playwright/test"
 
 /**
