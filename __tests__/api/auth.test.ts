@@ -1,11 +1,11 @@
 import type { NextRequest } from "next/server"
 import { POST } from "@/app/api/register/route"
 import prisma from "@/lib/prisma"
-import { hash } from "bcrypt"
+import { hash } from "bcryptjs"
 import { jest } from "@jest/globals"
 
-// Mock bcrypt
-jest.mock("bcrypt", () => ({
+// Mock bcryptjs
+jest.mock("bcryptjs", () => ({
   hash: jest.fn().mockResolvedValue("hashed_password"),
 }))
 
