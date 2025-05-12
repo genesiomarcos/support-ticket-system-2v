@@ -1,4 +1,4 @@
-import { createServerClient } from "@/lib/supabase-server"
+import prisma from "@/lib/prisma"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { TicketIcon, CheckCircle, Clock, AlertTriangle } from "lucide-react"
 
@@ -8,8 +8,6 @@ interface DashboardStatsProps {
 }
 
 export async function DashboardStats({ isAdmin, userId }: DashboardStatsProps) {
-  const supabase = createServerClient()
-
   let totalTickets = 0
   let openTickets = 0
   let resolvedTickets = 0
@@ -17,57 +15,76 @@ export async function DashboardStats({ isAdmin, userId }: DashboardStatsProps) {
 
   if (isAdmin) {
     // Get all tickets stats for admin
-    const { count: total } = await supabase.from("tickets").select("*", { count: "exact", head: true })
+    totalTickets = await prisma.ticket.count()
 
-    const { count: open } = await supabase
-      .from("tickets")
-      .select("*", { count: "exact", head: true })
-      .neq("status_id", (await supabase.from("statuses").select("id").eq("name", "Finalizado").single()).data?.id || 0)
+    const finishedStatus = await prisma.status.findUnique({
+      where: { name: "Finalizado" },
+    })
 
-    const { count: resolved } = await supabase
-      .from("tickets")
-      .select("*", { count: "exact", head: true })
-      .eq("status_id", (await supabase.from("statuses").select("id").eq("name", "Finalizado").single()).data?.id || 0)
+    openTickets = await prisma.ticket.count({
+      where: {
+        NOT: {
+          statusId: finishedStatus?.id,
+        },
+      },
+    })
 
-    const { count: highPriority } = await supabase
-      .from("tickets")
-      .select("*", { count: "exact", head: true })
-      .eq("priority_id", (await supabase.from("priorities").select("id").eq("name", "Alta").single()).data?.id || 0)
-      .neq("status_id", (await supabase.from("statuses").select("id").eq("name", "Finalizado").single()).data?.id || 0)
+    resolvedTickets = await prisma.ticket.count({
+      where: {
+        statusId: finishedStatus?.id,
+      },
+    })
 
-    totalTickets = total || 0
-    openTickets = open || 0
-    resolvedTickets = resolved || 0
-    highPriorityTickets = highPriority || 0
+    const highPriority = await prisma.priority.findUnique({
+      where: { name: "Alta" },
+    })
+
+    highPriorityTickets = await prisma.ticket.count({
+      where: {
+        priorityId: highPriority?.id,
+        NOT: {
+          statusId: finishedStatus?.id,
+        },
+      },
+    })
   } else {
     // Get user's tickets stats
-    const { count: total } = await supabase
-      .from("tickets")
-      .select("*", { count: "exact", head: true })
-      .eq("created_by", userId)
+    totalTickets = await prisma.ticket.count({
+      where: {
+        createdById: userId,
+      },
+    })
 
-    const { count: open } = await supabase
-      .from("tickets")
-      .select("*", { count: "exact", head: true })
-      .eq("created_by", userId)
-      .neq("status_id", (await supabase.from("statuses").select("id").eq("name", "Finalizado").single()).data?.id || 0)
+    const finishedStatus = await prisma.status.findUnique({
+      where: { name: "Finalizado" },
+    })
 
-    const { count: resolved } = await supabase
-      .from("tickets")
-      .select("*", { count: "exact", head: true })
-      .eq("created_by", userId)
-      .eq("status_id", (await supabase.from("statuses").select("id").eq("name", "Finalizado").single()).data?.id || 0)
+    openTickets = await prisma.ticket.count({
+      where: {
+        createdById: userId,
+        NOT: {
+          statusId: finishedStatus?.id,
+        },
+      },
+    })
 
-    const { count: highPriority } = await supabase
-      .from("tickets")
-      .select("*", { count: "exact", head: true })
-      .eq("created_by", userId)
-      .eq("priority_id", (await supabase.from("priorities").select("id").eq("name", "Alta").single()).data?.id || 0)
+    resolvedTickets = await prisma.ticket.count({
+      where: {
+        createdById: userId,
+        statusId: finishedStatus?.id,
+      },
+    })
 
-    totalTickets = total || 0
-    openTickets = open || 0
-    resolvedTickets = resolved || 0
-    highPriorityTickets = highPriority || 0
+    const highPriority = await prisma.priority.findUnique({
+      where: { name: "Alta" },
+    })
+
+    highPriorityTickets = await prisma.ticket.count({
+      where: {
+        createdById: userId,
+        priorityId: highPriority?.id,
+      },
+    })
   }
 
   return (

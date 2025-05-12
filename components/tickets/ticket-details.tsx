@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { createBrowserClient } from "@/lib/supabase-browser"
 import { formatDistanceToNow, format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { Badge } from "@/components/ui/badge"
@@ -21,38 +20,39 @@ export function TicketDetails({ ticket, isAdmin }: TicketDetailsProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [statuses, setStatuses] = useState<any[]>([])
   const [priorities, setPriorities] = useState<any[]>([])
-  const [statusId, setStatusId] = useState(ticket.status_id)
-  const [priorityId, setPriorityId] = useState(ticket.priority_id)
+  const [statusId, setStatusId] = useState(ticket.status.id)
+  const [priorityId, setPriorityId] = useState(ticket.priority.id)
   const router = useRouter()
-  const supabase = createBrowserClient()
   const { toast } = useToast()
 
   const loadOptions = async () => {
     // Load statuses
-    const { data: statusesData } = await supabase.from("statuses").select("id, name").order("name")
-
+    const statusesResponse = await fetch("/api/statuses")
+    const statusesData = await statusesResponse.json()
     setStatuses(statusesData || [])
 
     // Load priorities
-    const { data: prioritiesData } = await supabase.from("priorities").select("id, name").order("name")
-
+    const prioritiesResponse = await fetch("/api/priorities")
+    const prioritiesData = await prioritiesResponse.json()
     setPriorities(prioritiesData || [])
   }
 
   const updateTicket = async () => {
     setIsLoading(true)
     try {
-      const { error } = await supabase
-        .from("tickets")
-        .update({
-          status_id: statusId,
-          priority_id: priorityId,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", ticket.id)
+      const response = await fetch(`/api/tickets/${ticket.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          statusId,
+          priorityId,
+        }),
+      })
 
-      if (error) {
-        throw error
+      if (!response.ok) {
+        throw new Error("Failed to update ticket")
       }
 
       toast({
@@ -79,8 +79,8 @@ export function TicketDetails({ ticket, isAdmin }: TicketDetailsProps) {
           <div>
             <CardTitle className="text-2xl">{ticket.subject}</CardTitle>
             <CardDescription>
-              Criado por {ticket.profile.name}{" "}
-              {formatDistanceToNow(new Date(ticket.created_at), { addSuffix: true, locale: ptBR })}
+              Criado por {ticket.createdBy.name}{" "}
+              {formatDistanceToNow(new Date(ticket.createdAt), { addSuffix: true, locale: ptBR })}
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
@@ -96,16 +96,16 @@ export function TicketDetails({ ticket, isAdmin }: TicketDetailsProps) {
             <p className="whitespace-pre-wrap">{ticket.description}</p>
           </div>
 
-          {ticket.completed_at && (
+          {ticket.completedAt && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <CheckCircle className="h-4 w-4 text-green-500" />
               <span>
-                Finalizado em {format(new Date(ticket.completed_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                Finalizado em {format(new Date(ticket.completedAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
               </span>
             </div>
           )}
 
-          {isAdmin && !ticket.completed_at && (
+          {isAdmin && !ticket.completedAt && (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Status</label>
@@ -149,7 +149,7 @@ export function TicketDetails({ ticket, isAdmin }: TicketDetailsProps) {
           )}
         </div>
       </CardContent>
-      {isAdmin && !ticket.completed_at && (
+      {isAdmin && !ticket.completedAt && (
         <CardFooter>
           <Button onClick={updateTicket} disabled={isLoading} className="ml-auto">
             {isLoading ? "Atualizando..." : "Atualizar ticket"}

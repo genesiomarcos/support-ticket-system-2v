@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { createServerClient } from "@/lib/supabase-server"
+import prisma from "@/lib/prisma"
 import { formatDistanceToNow } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { Badge } from "@/components/ui/badge"
@@ -12,71 +12,91 @@ interface TicketsTableProps {
 }
 
 export async function TicketsTable({ isAdmin, userId }: TicketsTableProps) {
-  const supabase = createServerClient()
-
   let tickets = []
 
   if (isAdmin) {
     // Get all tickets for admin
-    const { data } = await supabase
-      .from("tickets")
-      .select(`
-        id,
-        subject,
-        created_at,
-        statuses (
-          id,
-          name,
-          color
-        ),
-        priorities (
-          id,
-          name,
-          color
-        ),
-        categories (
-          id,
-          name,
-          color
-        ),
-        profiles (
-          id,
-          name
-        )
-      `)
-      .order("created_at", { ascending: false })
+    const data = await prisma.ticket.findMany({
+      select: {
+        id: true,
+        subject: true,
+        createdAt: true,
+        status: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+          },
+        },
+        priority: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+          },
+        },
+        category: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+          },
+        },
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    })
 
     tickets = data || []
   } else {
     // Get user's tickets
-    const { data } = await supabase
-      .from("tickets")
-      .select(`
-        id,
-        subject,
-        created_at,
-        statuses (
-          id,
-          name,
-          color
-        ),
-        priorities (
-          id,
-          name,
-          color
-        ),
-        categories (
-          id,
-          name,
-          color
-        ),
-        profiles (
-          id,
-          name
-        )
-      `)
-      .eq("created_by", userId)
-      .order("created_at", { ascending: false })
+    const data = await prisma.ticket.findMany({
+      where: {
+        createdById: userId,
+      },
+      select: {
+        id: true,
+        subject: true,
+        createdAt: true,
+        status: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+          },
+        },
+        priority: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+          },
+        },
+        category: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+          },
+        },
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    })
 
     tickets = data || []
   }
@@ -101,17 +121,17 @@ export async function TicketsTable({ isAdmin, userId }: TicketsTableProps) {
               <TableRow key={ticket.id}>
                 <TableCell className="font-medium">{ticket.subject}</TableCell>
                 <TableCell>
-                  <Badge style={{ backgroundColor: ticket.categories.color }}>{ticket.categories.name}</Badge>
+                  <Badge style={{ backgroundColor: ticket.category.color }}>{ticket.category.name}</Badge>
                 </TableCell>
                 <TableCell>
-                  <Badge style={{ backgroundColor: ticket.priorities.color }}>{ticket.priorities.name}</Badge>
+                  <Badge style={{ backgroundColor: ticket.priority.color }}>{ticket.priority.name}</Badge>
                 </TableCell>
                 <TableCell>
-                  <Badge style={{ backgroundColor: ticket.statuses.color }}>{ticket.statuses.name}</Badge>
+                  <Badge style={{ backgroundColor: ticket.status.color }}>{ticket.status.name}</Badge>
                 </TableCell>
-                <TableCell>{ticket.profiles.name}</TableCell>
+                <TableCell>{ticket.createdBy.name}</TableCell>
                 <TableCell>
-                  {formatDistanceToNow(new Date(ticket.created_at), { addSuffix: true, locale: ptBR })}
+                  {formatDistanceToNow(new Date(ticket.createdAt), { addSuffix: true, locale: ptBR })}
                 </TableCell>
                 <TableCell className="text-right">
                   <Button asChild size="sm" variant="outline">

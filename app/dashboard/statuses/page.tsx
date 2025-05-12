@@ -1,22 +1,22 @@
-import { createServerClient } from "@/lib/supabase-server"
 import { redirect } from "next/navigation"
+import { getServerSession } from "next-auth/next"
+import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import { StatusesTable } from "@/components/statuses/statuses-table"
 import { CreateStatusButton } from "@/components/statuses/create-status-button"
-import { getUserProfile } from "@/lib/user-service"
+import prisma from "@/lib/prisma"
 
 export default async function StatusesPage() {
-  const supabase = createServerClient()
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
+  const session = await getServerSession(authOptions)
 
   if (!session) {
     redirect("/")
   }
 
-  const userProfile = await getUserProfile(session.user.id)
+  const userProfile = await prisma.user.findUnique({
+    where: { id: session.user.id },
+  })
 
-  if (!userProfile?.is_admin) {
+  if (!userProfile?.isAdmin) {
     redirect("/dashboard")
   }
 

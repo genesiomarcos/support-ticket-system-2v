@@ -1,27 +1,28 @@
-import { createServerClient } from "@/lib/supabase-server"
+import { redirect } from "next/navigation"
+import { getServerSession } from "next-auth/next"
+import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import { TicketsTable } from "@/components/tickets/tickets-table"
-import { getUserProfile } from "@/lib/user-service"
 import { CreateTicketButton } from "@/components/tickets/create-ticket-button"
+import prisma from "@/lib/prisma"
 
 export default async function TicketsPage() {
-  const supabase = createServerClient()
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
+  const session = await getServerSession(authOptions)
 
   if (!session) {
-    return null
+    redirect("/")
   }
 
-  const userProfile = await getUserProfile(session.user.id)
+  const userProfile = await prisma.user.findUnique({
+    where: { id: session.user.id },
+  })
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Tickets</h1>
-        {!userProfile?.is_admin && <CreateTicketButton />}
+        {!userProfile?.isAdmin && <CreateTicketButton />}
       </div>
-      <TicketsTable isAdmin={userProfile?.is_admin || false} userId={session.user.id} />
+      <TicketsTable isAdmin={userProfile?.isAdmin || false} userId={session.user.id} />
     </div>
   )
 }

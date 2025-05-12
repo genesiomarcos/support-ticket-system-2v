@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { createBrowserClient } from "@/lib/supabase-browser"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -22,11 +21,11 @@ import { useToast } from "@/components/ui/use-toast"
 import { Plus } from "lucide-react"
 
 const formSchema = z.object({
-  name: z.string().min(2, {
-    message: "O nome deve ter pelo menos 2 caracteres",
+  name: z.string().min(3, {
+    message: "O nome deve ter pelo menos 3 caracteres",
   }),
   color: z.string().regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, {
-    message: "Cor inválida. Use formato hexadecimal (ex: #FF0000)",
+    message: "Informe uma cor hexadecimal válida (ex: #FF0000)",
   }),
 })
 
@@ -34,7 +33,6 @@ export function CreateCategoryButton() {
   const [isLoading, setIsLoading] = useState(false)
   const [open, setOpen] = useState(false)
   const router = useRouter()
-  const supabase = createBrowserClient()
   const { toast } = useToast()
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -48,13 +46,16 @@ export function CreateCategoryButton() {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true)
     try {
-      const { error } = await supabase.from("categories").insert({
-        name: values.name,
-        color: values.color,
+      const response = await fetch("/api/categories", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(values),
       })
 
-      if (error) {
-        throw error
+      if (!response.ok) {
+        throw new Error("Failed to create category")
       }
 
       toast({
@@ -77,9 +78,17 @@ export function CreateCategoryButton() {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(newOpen) => {
+        setOpen(newOpen)
+        if (!newOpen) {
+          form.reset()
+        }
+      }}
+    >
       <DialogTrigger asChild>
-        <Button>
+        <Button onClick={() => setOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
           Nova Categoria
         </Button>
@@ -110,12 +119,16 @@ export function CreateCategoryButton() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Cor</FormLabel>
-                  <FormControl>
-                    <div className="flex items-center gap-2">
+                  <div className="flex gap-2">
+                    <FormControl>
                       <Input placeholder="#3B82F6" {...field} />
-                      <div className="h-10 w-10 rounded-md border" style={{ backgroundColor: field.value }} />
-                    </div>
-                  </FormControl>
+                    </FormControl>
+                    <div
+                      className="h-10 w-10 rounded-md border"
+                      style={{ backgroundColor: field.value }}
+                      aria-hidden="true"
+                    />
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}

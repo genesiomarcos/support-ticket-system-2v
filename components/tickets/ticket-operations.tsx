@@ -1,95 +1,52 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { createBrowserClient } from "@/lib/supabase-browser"
-import { format } from "date-fns"
+import { formatDistanceToNow } from "date-fns"
 import { ptBR } from "date-fns/locale"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import * as z from "zod"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
-import { Trash2 } from "lucide-react"
-
-const formSchema = z.object({
-  description: z.string().min(5, {
-    message: "A descrição deve ter pelo menos 5 caracteres",
-  }),
-})
 
 interface TicketOperationsProps {
   ticketId: string
+  operations: any[]
+  isCompleted: boolean
+  user: any
 }
 
-export function TicketOperations({ ticketId }: TicketOperationsProps) {
+export function TicketOperations({ ticketId, operations, isCompleted, user }: TicketOperationsProps) {
   const [isLoading, setIsLoading] = useState(false)
-  const [operations, setOperations] = useState<any[]>([])
+  const [operationText, setOperationText] = useState("")
   const router = useRouter()
-  const supabase = createBrowserClient()
   const { toast } = useToast()
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      description: "",
-    },
-  })
+  const addOperation = async () => {
+    if (!operationText.trim()) return
 
-  const loadOperations = async () => {
-    const { data } = await supabase
-      .from("operations")
-      .select(`
-        id,
-        description,
-        created_at,
-        profiles (
-          id,
-          name
-        )
-      `)
-      .eq("ticket_id", ticketId)
-      .order("created_at", { ascending: true })
-
-    setOperations(data || [])
-  }
-
-  useEffect(() => {
-    loadOperations()
-  }, [ticketId])
-
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true)
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (!user) {
-        throw new Error("Usuário não autenticado")
-      }
-
-      // Create operation
-      const { error } = await supabase.from("operations").insert({
-        description: values.description,
-        ticket_id: ticketId,
-        user_id: user.id,
+      const response = await fetch(`/api/tickets/${ticketId}/operations`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          description: operationText,
+        }),
       })
 
-      if (error) {
-        throw error
+      if (!response.ok) {
+        throw new Error("Failed to add operation")
       }
 
+      setOperationText("")
       toast({
         title: "Operação registrada",
-        description: "A operação foi registrada com sucesso",
+        description: "Sua operação foi registrada com sucesso",
       })
-
-      form.reset()
-      loadOperations()
       router.refresh()
     } catch (error: any) {
       toast({
@@ -102,27 +59,30 @@ export function TicketOperations({ ticketId }: TicketOperationsProps) {
     }
   }
 
-  const deleteOperation = async (operationId: string) => {
+  const completeTicket = async () => {
+    setIsLoading(true)
     try {
-      const { error } = await supabase.from("operations").delete().eq("id", operationId)
+      const response = await fetch(`/api/tickets/${ticketId}/complete`, {
+        method: "POST",
+      })
 
-      if (error) {
-        throw error
+      if (!response.ok) {
+        throw new Error("Failed to complete ticket")
       }
 
       toast({
-        title: "Operação excluída",
-        description: "A operação foi excluída com sucesso",
+        title: "Ticket finalizado",
+        description: "O ticket foi finalizado com sucesso",
       })
-
-      loadOperations()
       router.refresh()
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Erro ao excluir operação",
-        description: error.message || "Ocorreu um erro ao excluir a operação",
+        title: "Erro ao finalizar ticket",
+        description: error.message || "Ocorreu um erro ao finalizar o ticket",
       })
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -130,54 +90,48 @@ export function TicketOperations({ ticketId }: TicketOperationsProps) {
     <Card>
       <CardHeader>
         <CardTitle>Operações</CardTitle>
-        <CardDescription>Registre as operações realizadas neste ticket</CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-6">
-          {operations.length > 0 ? (
-            <div className="space-y-4">
-              {operations.map((operation) => (
-                <div key={operation.id} className="rounded-md border p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm text-muted-foreground">
-                      <span className="font-medium">{operation.profiles.name}</span>
-                      <span> • </span>
-                      <span>{format(new Date(operation.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>
-                    </div>
-                    <Button variant="ghost" size="icon" onClick={() => deleteOperation(operation.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <p className="mt-2 whitespace-pre-wrap">{operation.description}</p>
+      <CardContent className="space-y-4">
+        {operations.length > 0 ? (
+          operations.map((operation) => (
+            <div key={operation.id} className="flex gap-4">
+              <Avatar>
+                <AvatarFallback>{operation.user.name.charAt(0)}</AvatarFallback>
+                <AvatarImage src={operation.user.image || "/placeholder.svg"} />
+              </Avatar>
+              <div className="flex-1 space-y-1">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">{operation.user.name}</p>
+                  <span className="text-xs text-muted-foreground">
+                    {formatDistanceToNow(new Date(operation.createdAt), { addSuffix: true, locale: ptBR })}
+                  </span>
                 </div>
-              ))}
+                <p className="text-sm text-muted-foreground">{operation.description}</p>
+              </div>
             </div>
-          ) : (
-            <div className="text-center py-4 text-muted-foreground">Nenhuma operação registrada</div>
-          )}
-
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nova operação</FormLabel>
-                    <FormControl>
-                      <Textarea placeholder="Descreva a operação realizada" className="min-h-[100px]" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? "Registrando..." : "Registrar operação"}
-              </Button>
-            </form>
-          </Form>
-        </div>
+          ))
+        ) : (
+          <p className="text-center text-muted-foreground">Nenhuma operação registrada</p>
+        )}
       </CardContent>
+      {!isCompleted && (
+        <CardFooter className="flex-col gap-4">
+          <Textarea
+            placeholder="Registre uma operação..."
+            value={operationText}
+            onChange={(e) => setOperationText(e.target.value)}
+            className="min-h-[100px]"
+          />
+          <div className="flex w-full justify-between">
+            <Button variant="outline" onClick={completeTicket} disabled={isLoading}>
+              {isLoading ? "Finalizando..." : "Finalizar ticket"}
+            </Button>
+            <Button onClick={addOperation} disabled={isLoading || !operationText.trim()}>
+              {isLoading ? "Registrando..." : "Registrar operação"}
+            </Button>
+          </div>
+        </CardFooter>
+      )}
     </Card>
   )
 }

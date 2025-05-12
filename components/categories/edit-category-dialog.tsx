@@ -1,8 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { createBrowserClient } from "@/lib/supabase-browser"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -14,32 +13,33 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/use-toast"
-import { Edit } from "lucide-react"
 
 const formSchema = z.object({
-  name: z.string().min(2, {
-    message: "O nome deve ter pelo menos 2 caracteres",
+  name: z.string().min(3, {
+    message: "O nome deve ter pelo menos 3 caracteres",
   }),
   color: z.string().regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, {
-    message: "Cor inválida. Use formato hexadecimal (ex: #FF0000)",
+    message: "Informe uma cor hexadecimal válida (ex: #FF0000)",
   }),
 })
 
 interface EditCategoryDialogProps {
-  category: any
-  onSuccess: () => void
+  category: {
+    id: string
+    name: string
+    color: string
+  }
+  open: boolean
+  onOpenChange: (open: boolean) => void
 }
 
-export function EditCategoryDialog({ category, onSuccess }: EditCategoryDialogProps) {
+export function EditCategoryDialog({ category, open, onOpenChange }: EditCategoryDialogProps) {
   const [isLoading, setIsLoading] = useState(false)
-  const [open, setOpen] = useState(false)
   const router = useRouter()
-  const supabase = createBrowserClient()
   const { toast } = useToast()
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -50,20 +50,27 @@ export function EditCategoryDialog({ category, onSuccess }: EditCategoryDialogPr
     },
   })
 
+  // Update form values when category changes
+  useEffect(() => {
+    form.reset({
+      name: category.name,
+      color: category.color,
+    })
+  }, [category, form])
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true)
     try {
-      const { error } = await supabase
-        .from("categories")
-        .update({
-          name: values.name,
-          color: values.color,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", category.id)
+      const response = await fetch(`/api/categories/${category.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(values),
+      })
 
-      if (error) {
-        throw error
+      if (!response.ok) {
+        throw new Error("Failed to update category")
       }
 
       toast({
@@ -71,8 +78,7 @@ export function EditCategoryDialog({ category, onSuccess }: EditCategoryDialogPr
         description: "A categoria foi atualizada com sucesso",
       })
 
-      setOpen(false)
-      onSuccess()
+      onOpenChange(false)
       router.refresh()
     } catch (error: any) {
       toast({
@@ -85,17 +91,45 @@ export function EditCategoryDialog({ category, onSuccess }: EditCategoryDialogPr
     }
   }
 
+  const handleDelete = async () => {
+    if (!confirm("Tem certeza que deseja excluir esta categoria?")) {
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      const response = await fetch(`/api/categories/${category.id}`, {
+        method: "DELETE",
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to delete category")
+      }
+
+      toast({
+        title: "Categoria excluída",
+        description: "A categoria foi excluída com sucesso",
+      })
+
+      onOpenChange(false)
+      router.refresh()
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao excluir categoria",
+        description: error.message || "Ocorreu um erro ao excluir a categoria",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="ghost" size="icon">
-          <Edit className="h-4 w-4" />
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Editar categoria</DialogTitle>
-          <DialogDescription>Altere as informações da categoria</DialogDescription>
+          <DialogDescription>Atualize as informações da categoria</DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -118,17 +152,24 @@ export function EditCategoryDialog({ category, onSuccess }: EditCategoryDialogPr
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Cor</FormLabel>
-                  <FormControl>
-                    <div className="flex items-center gap-2">
+                  <div className="flex gap-2">
+                    <FormControl>
                       <Input placeholder="#3B82F6" {...field} />
-                      <div className="h-10 w-10 rounded-md border" style={{ backgroundColor: field.value }} />
-                    </div>
-                  </FormControl>
+                    </FormControl>
+                    <div
+                      className="h-10 w-10 rounded-md border"
+                      style={{ backgroundColor: field.value }}
+                      aria-hidden="true"
+                    />
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <DialogFooter>
+            <DialogFooter className="gap-2 sm:space-x-0">
+              <Button type="button" variant="destructive" onClick={handleDelete} disabled={isLoading}>
+                Excluir
+              </Button>
               <Button type="submit" disabled={isLoading}>
                 {isLoading ? "Salvando..." : "Salvar alterações"}
               </Button>

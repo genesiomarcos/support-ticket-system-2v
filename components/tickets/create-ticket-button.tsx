@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { createBrowserClient } from "@/lib/supabase-browser"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -40,7 +39,6 @@ export function CreateTicketButton() {
   const [open, setOpen] = useState(false)
   const [categories, setCategories] = useState<any[]>([])
   const router = useRouter()
-  const supabase = createBrowserClient()
   const { toast } = useToast()
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -54,19 +52,15 @@ export function CreateTicketButton() {
 
   const loadCategories = async () => {
     try {
-      const { data, error } = await supabase.from("categories").select("id, name").order("name")
-
-      if (error) {
-        throw error
-      }
-
+      const response = await fetch("/api/categories")
+      const data = await response.json()
       setCategories(data || [])
-    } catch (error: any) {
-      console.error("Erro ao carregar categorias:", error.message)
+    } catch (error) {
+      console.error("Error loading categories:", error)
       toast({
         variant: "destructive",
         title: "Erro ao carregar categorias",
-        description: error.message || "Ocorreu um erro ao carregar as categorias",
+        description: "Ocorreu um erro ao carregar as categorias",
       })
     }
   }
@@ -80,36 +74,35 @@ export function CreateTicketButton() {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true)
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (!user) {
-        throw new Error("Usuário não autenticado")
-      }
-
       // Get default status and priority
-      const { data: defaultStatus } = await supabase.from("statuses").select("id").eq("name", "Aberto").single()
+      const statusResponse = await fetch("/api/statuses?name=Aberto")
+      const statusData = await statusResponse.json()
+      const defaultStatus = statusData[0]
 
-      const { data: defaultPriority } = await supabase.from("priorities").select("id").eq("name", "Média").single()
+      const priorityResponse = await fetch("/api/priorities?name=Média")
+      const priorityData = await priorityResponse.json()
+      const defaultPriority = priorityData[0]
 
       // Create ticket
-      const { error, data } = await supabase
-        .from("tickets")
-        .insert({
+      const response = await fetch("/api/tickets", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
           subject: values.subject,
           description: values.description,
-          category_id: values.category_id,
-          status_id: defaultStatus?.id,
-          priority_id: defaultPriority?.id,
-          created_by: user.id,
-        })
-        .select("id")
-        .single()
+          categoryId: values.category_id,
+          statusId: defaultStatus?.id,
+          priorityId: defaultPriority?.id,
+        }),
+      })
 
-      if (error) {
-        throw error
+      if (!response.ok) {
+        throw new Error("Failed to create ticket")
       }
+
+      const data = await response.json()
 
       toast({
         title: "Ticket criado com sucesso",
